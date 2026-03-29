@@ -181,6 +181,51 @@ function checkInstantSkips(
     }
   }
 
+  // Skip 10 (NEW): Away team played AWAY yesterday with ≤1 goal, now away again
+  // Consecutive away with low away energy — unsustainable attacking output
+  if (awayCard?.lastAwayDate !== null && awayCard?.lastHomeDate === null) {
+    const awayPrevScore = awayCard?.lastAwayScore ?? 0;
+    if (awayPrevScore <= 1) {
+      return {
+        skip: true,
+        reason: `${awayTeam} played AWAY yesterday (scored ${awayPrevScore}) and is away again — consecutive low away energy trap`,
+      };
+    }
+  }
+
+  // Skip 11 (NEW): Away team scored 2+ away yesterday but home team scored ≤1 at home
+  // Overconfidence imbalance — strong away form vs weak home form often = 0:0 draw trap
+  const awayWasAwayForTrap = awayCard?.lastAwayDate !== null && awayCard?.lastHomeDate === null;
+  const homeWasHomeForTrap = homeCard?.lastHomeDate !== null && homeCard?.lastAwayDate === null;
+  if (awayWasAwayForTrap && homeWasHomeForTrap) {
+    const awayScore = awayCard?.lastAwayScore ?? 0;
+    const homeScore = homeCard?.lastHomeScore ?? 0;
+    if (awayScore >= 2 && homeScore <= 1) {
+      return {
+        skip: true,
+        reason: `${awayTeam} scored ${awayScore} away yesterday but ${homeTeam} only scored ${homeScore} at home — overconfidence imbalance trap`,
+      };
+    }
+  }
+
+  // Skip 12 (NEW): Both teams drew their last matches — draw trap pattern
+  const homeDrew =
+    homeCard &&
+    homeCard.lastGoalsScored !== null &&
+    homeCard.lastGoalsConceeded !== null &&
+    homeCard.lastGoalsScored === homeCard.lastGoalsConceeded;
+  const awayDrew =
+    awayCard &&
+    awayCard.lastGoalsScored !== null &&
+    awayCard.lastGoalsConceeded !== null &&
+    awayCard.lastGoalsScored === awayCard.lastGoalsConceeded;
+  if (homeDrew && awayDrew) {
+    return {
+      skip: true,
+      reason: `Both teams drew their last matches (${homeTeam}: ${homeCard?.lastGoalsScored}:${homeCard?.lastGoalsConceeded}, ${awayTeam}: ${awayCard?.lastGoalsScored}:${awayCard?.lastGoalsConceeded}) — draw trap pattern`,
+    };
+  }
+
   // Skip 9 (NEW): Unknown team energy — no yesterday data + opponent not strong
   if (homeCard?.flags.includes("UNKNOWN") || awayCard?.flags.includes("UNKNOWN")) {
     const unknownTeam = homeCard?.flags.includes("UNKNOWN") ? homeTeam : awayTeam;
@@ -395,17 +440,35 @@ function evaluateYesterdayRules(
         : `Mixed energy: ${homeTeam}: ${homeAway}, ${awayTeam}: ${awayAway} away`,
     });
   } else if (homeCard?.lastAwayDate !== null || awayCard?.lastAwayDate !== null) {
-    // One of them was away, one was home — standard check
-    const awayTeamScore = awayCard?.lastAwayScore ?? null;
-    if (awayTeamScore !== null) {
-      const passed = awayTeamScore >= 1;
+    // One of them was away, one was home — combined check
+    const awayTeamAwayScore = awayCard?.lastAwayScore ?? null;
+    const homeTeamHomeScore = homeCard?.lastHomeScore ?? null;
+    if (awayTeamAwayScore !== null && homeTeamHomeScore !== null) {
+      // Both positions have data — check combined energy
+      const bothLow = awayTeamAwayScore <= 1 && homeTeamHomeScore <= 1;
+      const awayStrong = awayTeamAwayScore >= 2;
+      const homeStrong = homeTeamHomeScore >= 2;
+      const passed = !bothLow;
+      const a8Points = bothLow ? 0 : (awayStrong && homeStrong) ? 2 : 1;
+      rules.push({
+        rule: "A8",
+        label: "Mixed Home/Away Energy Check",
+        passed,
+        points: a8Points,
+        maxPoints: 2,
+        detail: bothLow
+          ? `DANGER: ${awayTeam} scored ${awayTeamAwayScore} away + ${homeTeam} scored ${homeTeamHomeScore} at home — combined low energy`
+          : `${awayTeam} scored ${awayTeamAwayScore} away, ${homeTeam} scored ${homeTeamHomeScore} at home`,
+      });
+    } else if (awayTeamAwayScore !== null) {
+      const passed = awayTeamAwayScore >= 1;
       rules.push({
         rule: "A8",
         label: "Away Team Away Score Yesterday",
         passed,
-        points: passed ? (awayTeamScore >= 2 ? 2 : 1) : 0,
+        points: passed ? (awayTeamAwayScore >= 2 ? 2 : 1) : 0,
         maxPoints: 2,
-        detail: `${awayTeam} scored ${awayTeamScore} away yesterday`,
+        detail: `${awayTeam} scored ${awayTeamAwayScore} away yesterday`,
       });
     }
   }
@@ -433,6 +496,45 @@ function evaluateYesterdayRules(
       points: 3,
       maxPoints: 3,
       detail: `Both ${homeTeam} and ${awayTeam} have same-slot history`,
+    });
+  }
+
+  // A10 (NEW) — Away-High vs Home-Low Imbalance Trap
+  // When away team scored 2+ away yesterday but home team scored ≤1 at home
+  // Overconfidence imbalance often results in 0:0 or low-scoring draw
+  const awayWasAwayA10 = awayCard?.lastAwayDate !== null && awayCard?.lastHomeDate === null;
+  const homeWasHomeA10 = homeCard?.lastHomeDate !== null && homeCard?.lastAwayDate === null;
+  if (awayWasAwayA10 && homeWasHomeA10) {
+    const a10AwayScore = awayCard?.lastAwayScore ?? 0;
+    const a10HomeScore = homeCard?.lastHomeScore ?? 0;
+    const imbalanceTrap = a10AwayScore >= 2 && a10HomeScore <= 1;
+    rules.push({
+      rule: "A10",
+      label: "Away-High vs Home-Low Imbalance",
+      passed: !imbalanceTrap,
+      points: imbalanceTrap ? 0 : 2,
+      maxPoints: 2,
+      detail: imbalanceTrap
+        ? `TRAP: ${awayTeam} scored ${a10AwayScore} away (strong) vs ${homeTeam} scored ${a10HomeScore} at home (weak) — overconfidence imbalance`
+        : `${awayTeam} scored ${a10AwayScore} away, ${homeTeam} scored ${a10HomeScore} at home — balanced`,
+    });
+  }
+
+  // A11 (NEW) — Consecutive Away Low Energy for away team
+  // Away team played away yesterday with ≤1 goal, now away again
+  const awayConsecutiveAway = awayCard?.lastAwayDate !== null && awayCard?.lastHomeDate === null;
+  if (awayConsecutiveAway) {
+    const a11AwayScore = awayCard?.lastAwayScore ?? 0;
+    const consecutiveLow = a11AwayScore <= 1;
+    rules.push({
+      rule: "A11",
+      label: "Consecutive Away Low Energy",
+      passed: !consecutiveLow,
+      points: consecutiveLow ? 0 : 2,
+      maxPoints: 2,
+      detail: consecutiveLow
+        ? `TRAP: ${awayTeam} played away yesterday (scored ${a11AwayScore}) and is away again — unsustainable`
+        : `${awayTeam} scored ${a11AwayScore} away yesterday — sufficient energy for consecutive away`,
     });
   }
 
