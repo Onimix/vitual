@@ -2,7 +2,7 @@
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**App Status**: ✅ ONIMIX Virtual Football Analysis Engine — built and pushed to GitHub
 
 The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
 
@@ -14,6 +14,13 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] ESLint configuration
 - [x] Memory bank documentation
 - [x] Recipe system for common features
+- [x] ONIMIX engine: 15-rule dual-signal analysis (src/lib/onimix-engine.ts)
+- [x] Type definitions (src/lib/types.ts)
+- [x] LocalStorage persistence (src/lib/storage.ts)
+- [x] Home page with rule reference & decision table
+- [x] Analyze page: paste results + fixtures → full ONIMIX analysis
+- [x] Tracker page: log outcomes, win rate vs baseline, export CSV
+- [x] UI components: Navbar, AnalysisCard, EnergyCards, ResultsInput, FixtureInput, TrackerTable, Badge, Card
 
 ## Current Structure
 
@@ -85,3 +92,4 @@ export async function GET() {
 | Date | Changes |
 |------|---------|
 | Initial | Template created with base setup |
+| 2026-03-29 | Built full ONIMIX virtual football analysis engine — 15 rules, analyzer, tracker, energy cards |
