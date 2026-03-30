@@ -226,6 +226,37 @@ function checkInstantSkips(
     };
   }
 
+  // Skip 13 (NEW): Home team was AWAY yesterday with ≤1 goal, now HOME
+  // Position switch low energy — scored poorly away, unreliable at home
+  const homeSwitchedFromAway =
+    homeCard?.lastAwayDate !== null && homeCard?.lastHomeDate === null;
+  if (homeSwitchedFromAway) {
+    const homePrevAwayScore = homeCard?.lastAwayScore ?? 0;
+    if (homePrevAwayScore <= 1) {
+      return {
+        skip: true,
+        reason: `${homeTeam} scored ${homePrevAwayScore} away yesterday and switched to HOME — position switch low energy trap`,
+      };
+    }
+  }
+
+  // Skip 14 (NEW): Strong home team (2+ home) switching to AWAY vs weak away team (≤1 away) switching to HOME
+  // Overconfidence reversal — dominant home team going away + weak away team coming home = 0:0 trap
+  const homeSwitchedFromHome =
+    homeCard?.lastHomeDate !== null && homeCard?.lastAwayDate === null;
+  const awaySwitchedFromAway =
+    awayCard?.lastAwayDate !== null && awayCard?.lastHomeDate === null;
+  if (homeSwitchedFromHome && awaySwitchedFromAway) {
+    const homePrevHomeScore = homeCard?.lastHomeScore ?? 0;
+    const awayPrevAwayScore = awayCard?.lastAwayScore ?? 0;
+    if (homePrevHomeScore >= 2 && awayPrevAwayScore <= 1) {
+      return {
+        skip: true,
+        reason: `${homeTeam} dominated at home (${homePrevHomeScore}) now away vs ${awayTeam} scored ${awayPrevAwayScore} away now home — overconfidence reversal trap`,
+      };
+    }
+  }
+
   // Skip 9 (NEW): Unknown team energy — no yesterday data + opponent not strong
   if (homeCard?.flags.includes("UNKNOWN") || awayCard?.flags.includes("UNKNOWN")) {
     const unknownTeam = homeCard?.flags.includes("UNKNOWN") ? homeTeam : awayTeam;
@@ -535,6 +566,47 @@ function evaluateYesterdayRules(
       detail: consecutiveLow
         ? `TRAP: ${awayTeam} played away yesterday (scored ${a11AwayScore}) and is away again — unsustainable`
         : `${awayTeam} scored ${a11AwayScore} away yesterday — sufficient energy for consecutive away`,
+    });
+  }
+
+  // A12 (NEW) — Position Switch Low Energy for home team
+  // Home team was away yesterday with ≤1 goal, now home — unreliable attack
+  const homeSwitchedFromAwayA12 =
+    homeCard?.lastAwayDate !== null && homeCard?.lastHomeDate === null;
+  if (homeSwitchedFromAwayA12) {
+    const a12HomePrevAway = homeCard?.lastAwayScore ?? 0;
+    const positionSwitchLow = a12HomePrevAway <= 1;
+    rules.push({
+      rule: "A12",
+      label: "Position Switch Low Energy (Home)",
+      passed: !positionSwitchLow,
+      points: positionSwitchLow ? 0 : 2,
+      maxPoints: 2,
+      detail: positionSwitchLow
+        ? `TRAP: ${homeTeam} scored ${a12HomePrevAway} away yesterday, now HOME — position switch low energy`
+        : `${homeTeam} scored ${a12HomePrevAway} away yesterday, now HOME — sufficient energy`,
+    });
+  }
+
+  // A13 (NEW) — Overconfidence Reversal
+  // Strong home team (2+ home) switching to AWAY vs weak away team (≤1 away) switching to HOME
+  const homeStrongSwitchA13 =
+    homeCard?.lastHomeDate !== null && homeCard?.lastAwayDate === null;
+  const awayWeakSwitchA13 =
+    awayCard?.lastAwayDate !== null && awayCard?.lastHomeDate === null;
+  if (homeStrongSwitchA13 && awayWeakSwitchA13) {
+    const a13HomePrevHome = homeCard?.lastHomeScore ?? 0;
+    const a13AwayPrevAway = awayCard?.lastAwayScore ?? 0;
+    const reversalTrap = a13HomePrevHome >= 2 && a13AwayPrevAway <= 1;
+    rules.push({
+      rule: "A13",
+      label: "Overconfidence Reversal",
+      passed: !reversalTrap,
+      points: reversalTrap ? 0 : 2,
+      maxPoints: 2,
+      detail: reversalTrap
+        ? `TRAP: ${homeTeam} dominated at home (${a13HomePrevHome}) now away vs ${awayTeam} weak away (${a13AwayPrevAway}) now home — overconfidence reversal`
+        : `${homeTeam} home ${a13HomePrevHome}→away, ${awayTeam} away ${a13AwayPrevAway}→home — balanced`,
     });
   }
 
