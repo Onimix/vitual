@@ -26,6 +26,7 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Engine fix: A10 (away-high vs home-low imbalance rule), A11 (consecutive away low energy rule)
 - [x] Engine fix: Skip 13 (position switch low energy — away→home with ≤1), Skip 14 (overconfidence reversal — strong home→away vs weak away→home)
 - [x] Engine fix: Skip 15 (away team scored 1 at home yesterday, now away — low home output switch), A14 rule
+- [x] Engine fix: Skip 16 (home strong away 2+ vs away weak home ≤1 — overconfidence trap), A15 rule
 
 ## Current Structure
 
@@ -101,3 +102,4 @@ export async function GET() {
 | 2026-03-29 | Added 3 new instant skip traps + 2 new yesterday rules (A10, A11) to fix missed patterns |
 | 2026-03-29 | Added Skip 13 (position switch low energy) + Skip 14 (overconfidence reversal) + rules A12, A13 |
 | 2026-03-29 | Added Skip 15 (low home→away switch) + A14 rule — catches RSO vs RMA pattern |
+| 2026-03-29 | Added Skip 16 (home strong away vs away weak home — overconfidence trap) + A15 rule |

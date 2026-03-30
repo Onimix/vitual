@@ -272,6 +272,22 @@ function checkInstantSkips(
     }
   }
 
+  // Skip 16 (NEW): Home team scored 2+ away yesterday vs away team scored ≤1 at home yesterday
+  // Overconfidence trap — strong away form carrying into home vs weak home opponent
+  // Mirror of Skip 11 (which checks away team strong away vs home team weak home)
+  const homeWasAwayS16 = homeCard?.lastAwayDate !== null && homeCard?.lastHomeDate === null;
+  const awayWasHomeS16 = awayCard?.lastHomeDate !== null && awayCard?.lastAwayDate === null;
+  if (homeWasAwayS16 && awayWasHomeS16) {
+    const homePrevAwayScore = homeCard?.lastAwayScore ?? 0;
+    const awayPrevHomeScore = awayCard?.lastHomeScore ?? 0;
+    if (homePrevAwayScore >= 2 && awayPrevHomeScore <= 1) {
+      return {
+        skip: true,
+        reason: `${homeTeam} scored ${homePrevAwayScore} away yesterday (strong) vs ${awayTeam} scored ${awayPrevHomeScore} at home (weak) — overconfidence trap`,
+      };
+    }
+  }
+
   // Skip 9 (NEW): Unknown team energy — no yesterday data + opponent not strong
   if (homeCard?.flags.includes("UNKNOWN") || awayCard?.flags.includes("UNKNOWN")) {
     const unknownTeam = homeCard?.flags.includes("UNKNOWN") ? homeTeam : awayTeam;
@@ -641,6 +657,26 @@ function evaluateYesterdayRules(
       detail: lowHomeSwitch
         ? `TRAP: ${awayTeam} scored only 1 at home yesterday, now AWAY — weak attack in both positions`
         : `${awayTeam} scored ${a14AwayPrevHome} at home yesterday, now AWAY — sufficient`,
+    });
+  }
+
+  // A15 (NEW) — Home team strong away (2+) vs away team weak home (≤1)
+  // Overconfidence trap — strong away form into home vs weak home opponent
+  const homeWasAwayA15 = homeCard?.lastAwayDate !== null && homeCard?.lastHomeDate === null;
+  const awayWasHomeA15 = awayCard?.lastHomeDate !== null && awayCard?.lastAwayDate === null;
+  if (homeWasAwayA15 && awayWasHomeA15) {
+    const a15HomePrevAway = homeCard?.lastAwayScore ?? 0;
+    const a15AwayPrevHome = awayCard?.lastHomeScore ?? 0;
+    const overconfTrap = a15HomePrevAway >= 2 && a15AwayPrevHome <= 1;
+    rules.push({
+      rule: "A15",
+      label: "Home Strong Away vs Away Weak Home",
+      passed: !overconfTrap,
+      points: overconfTrap ? 0 : 2,
+      maxPoints: 2,
+      detail: overconfTrap
+        ? `TRAP: ${homeTeam} scored ${a15HomePrevAway} away (strong) vs ${awayTeam} scored ${a15AwayPrevHome} at home (weak) — overconfidence trap`
+        : `${homeTeam} away ${a15HomePrevAway}, ${awayTeam} home ${a15AwayPrevHome} — balanced`,
     });
   }
 
