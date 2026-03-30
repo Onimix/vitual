@@ -257,6 +257,21 @@ function checkInstantSkips(
     }
   }
 
+  // Skip 15 (NEW): Away team scored 1 at home yesterday, now AWAY
+  // Low home output switching to away — unreliable attack in both positions
+  // (0 at home is already caught by HOME_ZERO_TRAP)
+  const awaySwitchedFromHome =
+    awayCard?.lastHomeDate !== null && awayCard?.lastAwayDate === null;
+  if (awaySwitchedFromHome) {
+    const awayPrevHomeScore = awayCard?.lastHomeScore ?? 0;
+    if (awayPrevHomeScore === 1) {
+      return {
+        skip: true,
+        reason: `${awayTeam} scored only ${awayPrevHomeScore} at home yesterday and switched to AWAY — low home output now away trap`,
+      };
+    }
+  }
+
   // Skip 9 (NEW): Unknown team energy — no yesterday data + opponent not strong
   if (homeCard?.flags.includes("UNKNOWN") || awayCard?.flags.includes("UNKNOWN")) {
     const unknownTeam = homeCard?.flags.includes("UNKNOWN") ? homeTeam : awayTeam;
@@ -607,6 +622,25 @@ function evaluateYesterdayRules(
       detail: reversalTrap
         ? `TRAP: ${homeTeam} dominated at home (${a13HomePrevHome}) now away vs ${awayTeam} weak away (${a13AwayPrevAway}) now home — overconfidence reversal`
         : `${homeTeam} home ${a13HomePrevHome}→away, ${awayTeam} away ${a13AwayPrevAway}→home — balanced`,
+    });
+  }
+
+  // A14 (NEW) — Away team scored exactly 1 at home yesterday, now AWAY
+  // Low home output switching to away — unreliable in both positions
+  const awaySwitchedFromHomeA14 =
+    awayCard?.lastHomeDate !== null && awayCard?.lastAwayDate === null;
+  if (awaySwitchedFromHomeA14) {
+    const a14AwayPrevHome = awayCard?.lastHomeScore ?? 0;
+    const lowHomeSwitch = a14AwayPrevHome === 1;
+    rules.push({
+      rule: "A14",
+      label: "Low Home Output → Away Switch",
+      passed: !lowHomeSwitch,
+      points: lowHomeSwitch ? 0 : 2,
+      maxPoints: 2,
+      detail: lowHomeSwitch
+        ? `TRAP: ${awayTeam} scored only 1 at home yesterday, now AWAY — weak attack in both positions`
+        : `${awayTeam} scored ${a14AwayPrevHome} at home yesterday, now AWAY — sufficient`,
     });
   }
 
