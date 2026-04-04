@@ -288,6 +288,21 @@ function checkInstantSkips(
     }
   }
 
+  // Skip 17 (NEW): Both teams played HOME yesterday and both scored ≤1
+  // Combined low home energy — both teams had weak home performances
+  const bothHomeS17 =
+    homeCard?.lastHomeDate !== null && awayCard?.lastHomeDate !== null;
+  if (bothHomeS17) {
+    const homePrevHomeScore = homeCard?.lastHomeScore ?? 0;
+    const awayPrevHomeScore = awayCard?.lastHomeScore ?? 0;
+    if (homePrevHomeScore <= 1 && awayPrevHomeScore <= 1) {
+      return {
+        skip: true,
+        reason: `Both teams played HOME yesterday with low scores (${homeTeam}: ${homePrevHomeScore}, ${awayTeam}: ${awayPrevHomeScore}) — combined low home energy`,
+      };
+    }
+  }
+
   // Skip 9 (NEW): Unknown team energy — no yesterday data + opponent not strong
   if (homeCard?.flags.includes("UNKNOWN") || awayCard?.flags.includes("UNKNOWN")) {
     const unknownTeam = homeCard?.flags.includes("UNKNOWN") ? homeTeam : awayTeam;
@@ -677,6 +692,26 @@ function evaluateYesterdayRules(
       detail: overconfTrap
         ? `TRAP: ${homeTeam} scored ${a15HomePrevAway} away (strong) vs ${awayTeam} scored ${a15AwayPrevHome} at home (weak) — overconfidence trap`
         : `${homeTeam} away ${a15HomePrevAway}, ${awayTeam} home ${a15AwayPrevHome} — balanced`,
+    });
+  }
+
+  // A16 (NEW) — Both teams HOME yesterday with both scoring ≤1
+  // Combined low home energy — weak attack from both sides
+  const bothHomeA16 =
+    homeCard?.lastHomeDate !== null && awayCard?.lastHomeDate !== null;
+  if (bothHomeA16) {
+    const a16HomePrevHome = homeCard?.lastHomeScore ?? 0;
+    const a16AwayPrevHome = awayCard?.lastHomeScore ?? 0;
+    const bothLow = a16HomePrevHome <= 1 && a16AwayPrevHome <= 1;
+    rules.push({
+      rule: "A16",
+      label: "Both Home Yesterday Low Energy",
+      passed: !bothLow,
+      points: bothLow ? 0 : 2,
+      maxPoints: 2,
+      detail: bothLow
+        ? `TRAP: Both teams scored ≤1 at home yesterday (${homeTeam}: ${a16HomePrevHome}, ${awayTeam}: ${a16AwayPrevHome}) — combined low home energy`
+        : `${homeTeam} scored ${a16HomePrevHome}, ${awayTeam} scored ${a16AwayPrevHome} at home — acceptable`,
     });
   }
 
