@@ -47,7 +47,7 @@ export default function AnalyzePage() {
   function runAnalysis() {
     if (todayFixtures.length === 0) return;
     const results = todayFixtures.map((f) =>
-      analyzeMatch(f.home, f.away, slot, analyzeDate, yesterdayResults, null)
+      analyzeMatch(f.home, f.away, slot, analyzeDate, yesterdayResults)
     );
     setAnalyses(results);
   }
