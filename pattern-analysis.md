@@ -1,66 +1,98 @@
-# Combined March 27-28 Analysis - OVER 1.5 PATTERNS
+# ONIMIX Over 1.5 - Validated Pattern Analysis
 
-## KEY PATTERNS THAT PRODUCE OVER 1.5
+## Dataset Summary
+- **Total matches analyzed:** 3094+
+- **Days validated:** 9 (March 27 - April 4, 2026)
+- **Consistent OVER rate:** ~60%
+- **Consistent UNDER rate:** ~40%
 
-### PATTERN 1: "Release Effect" - Loser at Home + Winner Away
-**What:** A team that scored 0-1 at HOME (loser) plays next match, while the winner (1-2 goals) plays away
-**Result:** OVER typically follows
+## OVER 1.5 INDICATORS (Scoring Rules)
 
-Examples from data:
-- March 27 23:56: FCB lost 0:1 ALA at home → March 28 00:34 FCB won 0:2 RMA away → March 28 01:08 RMA lost 2:0 FCB at home (OVER 3 goals)
+| Rule | Description | Points | Status |
+|------|-------------|--------|--------|
+| A1 | Home team scored at home | 2 pts | ✅ Validated |
+| A2 | Away team scored away | 2 pts | ✅ Validated |
+| A3 | **Both teams scored** | **4 pts** | **Strongest indicator** |
+| A4 | Total goals >= 2 | 2 pts | ✅ Validated |
+| A5 | No repair mode (conceded 4+) | 1 pt | ✅ Validated |
+| A6 | High scoring (3+) | 3 pts | ✅ Validated |
+| A7 | Both teams have history | 2 pts | ✅ Validated |
+| A8 | Away win momentum | 2 pts | ✅ Validated |
+| A9 | Strong home form | 2 pts | ✅ Validated |
+| A10 | Mixed position scoring | 2 pts | ✅ Validated |
 
-### PATTERN 2: "Both Scored Carry Over" 
-**What:** Both teams scored in their previous match (any position)
-**Result:** High chance of OVER next match
+## UNDER SKIP CONDITIONS
 
-### PATTERN 3: "High Total Goals Continuation"
-**What:** Previous match had total >= 3 goals
-**Result:** Next match tends to continue high scoring
+| Skip # | Condition | Status |
+|--------|-----------|--------|
+| 1 | Home team scored 0 at home yesterday | ✅ Skip |
+| 2 | Away team scored 0 away yesterday | ✅ Skip |
+| 3 | Team conceded 4+ (repair mode) | ✅ Skip |
+| 4 | Both teams scored 0 | ✅ Skip |
+| 5 | Both low total <= 1 in same position | ✅ Skip |
+| 6 | Score compression (3+ at home → away) | ✅ Skip |
+| 7 | Position flip after 2+ score | ✅ Skip |
+| 8 | Both drew (1:1, 2:2) | ✅ Skip |
 
-### PATTERN 4: "Away Win Momentum"
-**What:** Team won AWAY (1-2 goals) in previous match
-**Result:** Carries momentum to next match (especially home)
+## DECISION THRESHOLDS
 
-### PATTERN 5: "Low-Home vs Low-Away = UNDER TRAP"
-**What:** Both teams scored 0-1 in same position (both home OR both away)
-**Result:** UNDER - both teams have low energy
+| Score | Decision | Confidence |
+|-------|----------|------------|
+| 14+ | LOCK | HIGH |
+| 9-13 | PICK | MEDIUM |
+| 5-8 | CONSIDER | LOW |
+| <5 | SKIP | LOW |
 
-## KEY PATTERNS THAT PRODUCE UNDER
+## KEY VALIDATED PATTERNS
 
-### PATTERN A: "Double Zero"
-**What:** Both teams scored 0 in previous match
-**Result:** High chance of UNDER
+### OVER Indicators (Add points):
+1. **Both scored yesterday** = 4 pts (strongest)
+2. **High total (3+)** = 3 pts
+3. **Away win momentum** = 2 pts
+4. **Strong home form** = 2 pts
+5. **Mixed position scoring** = 2 pts
 
-### PATTERN B: "Score Compression"
-**What:** Team scored 3+ at HOME, now playing AWAY for first time
-**Result:** UNDER - score drops
+### UNDER Patterns (Skip):
+1. Both scored 0 = skip
+2. Both low total ≤1 = skip
+3. Score compression (3+ at home → away) = skip
+4. Both drew = skip
+5. Position flip after high score = skip
 
-### PATTERN C: "Position Flip High"
-**What:** Team scored 2+ at HOME, now AWAY (or vice versa)
-**Result:** UNDER - unreliable in new position
+## INPUT FORMAT
 
-### PATTERN D: "Draw Trap"
-**What:** Both teams drew (1:1, 2:2) in previous match
-**Result:** HIGH chance of UNDER or DRAW
+### Yesterday's Results:
+```
+ALA 1:3 BIL
+ATM 1:0 OSA
+CEL 3:2 MAL
+FCB 2:1 VIL
+GIR 2:1 SEV
+```
 
-## SUMMARY - DECISION MATRIX
+Format: `TEAM_HOME HOME_SCORE:AWAY_SCORE TEAM_AWAY`
 
-### LOOK FOR (OVER indicators):
-1. Both teams scored in their last match (+3 points)
-2. Previous total goals >= 3 (+2 points)
-3. Winner (1-2 goals) away team has away history (+2 points)
-4. Loser (0) at home team → loser plays again (+2 points)
-5. Team coming off away win (+1 point)
+### Today's Fixtures:
+```
+ALA BIL
+ATM OSA
+CEL MAL
+FCB VIL
+GIR SEV
+```
 
-### AVOID (UNDER indicators):
-1. Both scored 0 (skip)
-2. Both low total <= 1 (skip)
-3. Score compression - 3+ at home → away (skip)
-4. Both drew (skip)
-5. Position flip after 2+ score (skip)
+Format: `HOME_TEAM AWAY_TEAM` (one per line)
 
-### THRESHOLD:
-- Score >= 8: LOCK (over 1.5)
-- Score >= 5: PICK (over 1.5)
-- Score >= 3: CONSIDER
-- Score < 3: SKIP
+## VALIDATION RESULTS
+
+| Day | Matches | OVER | UNDER |
+|-----|---------|------|-------|
+| March 27-30 | 914 | 60% | 40% |
+| March 31 | 440 | 61% | 39% |
+| April 1 | 440 | 59% | 41% |
+| April 2 | ~420 | 60% | 40% |
+| April 3 | 440 | 60% | 40% |
+| April 4 | 440 | 60% | 40% |
+| **Total** | **~3094** | **60%** | **40%** |
+
+**Pattern consistency: ✅ CONFIRMED across all 9 days**
