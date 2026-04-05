@@ -212,6 +212,16 @@ function checkInstantSkips(
     }
   }
 
+  // NEW PATTERN: Both teams scored <=1 (different positions) = strong UNDER
+  const homeScoreAny = homeCard?.lastHomeScore ?? homeCard?.lastAwayScore ?? 2;
+  const awayScoreAny = awayCard?.lastHomeScore ?? awayCard?.lastAwayScore ?? 2;
+  if (homeScoreAny <= 1 && awayScoreAny <= 1) {
+    return {
+      skip: true,
+      reason: `Both scored low (${homeScoreAny}, ${awayScoreAny}) - strong UNDER`,
+    };
+  }
+
   // NEW PATTERN: Same fixture repeat with low score
   const sameFixture = yesterdayResults.find(
     (r) =>
