@@ -18,8 +18,10 @@ export interface TeamEnergyCard {
   lastAwayDate: string | null;
   lastHomeSlot: string | null;
   lastAwaySlot: string | null;
-  lastGoalsConceeded: number | null;
+  lastGoalsConceded: number | null;
   lastGoalsScored: number | null;
+  lastHomeTotalGoals: number | null;
+  lastAwayTotalGoals: number | null;
   flags: TeamFlag[];
 }
 
