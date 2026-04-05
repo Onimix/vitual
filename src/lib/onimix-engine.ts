@@ -92,7 +92,7 @@ export function analyzeMatch(
   let yesterdayScore = 0;
 
   if (!instantSkipResult.skip) {
-    yesterdayScore = Math.min(16, yesterdayRules.reduce((s, r) => s + r.points, 0));
+    yesterdayScore = Math.min(20, yesterdayRules.reduce((s, r) => s + r.points, 0));
   }
 
   const decision = resolveDecision(yesterdayScore, instantSkipResult.skip);
@@ -295,17 +295,17 @@ function evaluateYesterdayRules(
       : `${awayTeam} scored 0 away`,
   });
 
-  // A3 — Both teams scored (positive indicator)
+  // A3 — Both teams scored (most important - OVER indicator)
   const bothScored = homeScored && awayScored;
   rules.push({
     rule: "A3",
     label: "Both Teams Scored",
     passed: bothScored,
-    points: bothScored ? 3 : 0,
-    maxPoints: 3,
+    points: bothScored ? 4 : 0,
+    maxPoints: 4,
     detail: bothScored
-      ? "Both teams have scoring form"
-      : "One or both teams failed to score",
+      ? "Both scored - high OVER probability"
+      : "One or both failed to score",
   });
 
   // A4 — Total goals from both teams in last match >= 2
@@ -318,7 +318,7 @@ function evaluateYesterdayRules(
     passed: totalGoalsOk,
     points: totalGoalsOk ? 2 : 0,
     maxPoints: 2,
-    detail: `Home total: ${homeTotal}, Away total: ${awayTotal}`,
+    detail: `Total: ${homeTotal + awayTotal} goals`,
   });
 
   // A5 — No repair mode
@@ -329,23 +329,21 @@ function evaluateYesterdayRules(
     rule: "A5",
     label: "No Repair Mode",
     passed: noRepair,
-    points: noRepair ? 2 : 0,
-    maxPoints: 2,
-    detail: noRepair
-      ? "Neither team conceded 4+"
-      : "One or both teams conceded 4+",
+    points: noRepair ? 1 : 0,
+    maxPoints: 1,
+    detail: noRepair ? "No defense issues" : "Defense concerns",
   });
 
-  // A6 — Attacking form (cooldown or both scored)
+  // A6 — High scoring (cooldown = strong attack)
   const homeCooldown = homeCard?.flags.includes("COOLDOWN") ?? false;
   const awayCooldown = awayCard?.flags.includes("COOLDOWN") ?? false;
   rules.push({
     rule: "A6",
-    label: "Attacking Form",
-    passed: homeCooldown || awayCooldown || bothScored,
-    points: (homeCooldown || awayCooldown || bothScored) ? 2 : 0,
-    maxPoints: 2,
-    detail: "At least one team has strong attacking form",
+    label: "High Scoring Form",
+    passed: homeCooldown || awayCooldown,
+    points: (homeCooldown || awayCooldown) ? 3 : 0,
+    maxPoints: 3,
+    detail: homeCooldown || awayCooldown ? "Strong attack - OVER likely" : "Normal scoring",
   });
 
   // A7 — Both have data
@@ -356,11 +354,48 @@ function evaluateYesterdayRules(
     rule: "A7",
     label: "Both Have History",
     passed: bothHaveData,
-    points: bothHaveData ? 3 : 0,
-    maxPoints: 3,
-    detail: bothHaveData
-      ? "Both teams have previous data"
-      : "One or both teams have no data",
+    points: bothHaveData ? 2 : 0,
+    maxPoints: 2,
+    detail: bothHaveData ? "Reliable data" : "Limited data",
+  });
+
+  // A8 — POSITIVE: Away team won away (momentum carry)
+  const awayWonAway = awayCard && awayCard.lastAwayScore !== null && 
+                      awayCard.lastAwayScore >= 1 && 
+                      (awayCard.lastGoalsScored ?? 0) > (awayCard.lastGoalsConceded ?? 0);
+  rules.push({
+    rule: "A8",
+    label: "Away Win Momentum",
+    passed: !!awayWonAway,
+    points: awayWonAway ? 2 : 0,
+    maxPoints: 2,
+    detail: awayWonAway ? "Away winner carries momentum" : "No away win momentum",
+  });
+
+  // A9 — POSITIVE: Home team won at home (strong home form)
+  const homeWonHome = homeCard && homeCard.lastHomeScore !== null && 
+                      homeCard.lastHomeScore >= 1 &&
+                      (homeCard.lastGoalsScored ?? 0) > (homeCard.lastGoalsConceded ?? 0);
+  rules.push({
+    rule: "A9",
+    label: "Home Win Form",
+    passed: !!homeWonHome,
+    points: homeWonHome ? 2 : 0,
+    maxPoints: 2,
+    detail: homeWonHome ? "Strong home form" : "No strong home form",
+  });
+
+  // A10 — POSITIVE: Both teams scored in DIFFERENT positions (balanced attack)
+  const homeScoredAway = (homeCard?.lastAwayScore ?? 0) >= 1;
+  const awayScoredHome = (awayCard?.lastHomeScore ?? 0) >= 1;
+  const mixedScoring = (homeScored && awayScoredHome) || (awayScored && homeScoredAway);
+  rules.push({
+    rule: "A10",
+    label: "Mixed Position Scoring",
+    passed: mixedScoring,
+    points: mixedScoring ? 2 : 0,
+    maxPoints: 2,
+    detail: mixedScoring ? "Both score in different positions - OVER likely" : "Limited mixed scoring",
   });
 
   return rules;
@@ -368,16 +403,16 @@ function evaluateYesterdayRules(
 
 function resolveDecision(yesterdayScore: number, instantSkip: boolean): MatchAnalysis["decision"] {
   if (instantSkip) return "SKIP";
-  if (yesterdayScore >= 12) return "LOCK";
-  if (yesterdayScore >= 8) return "PICK";
-  if (yesterdayScore >= 4) return "CONSIDER";
+  if (yesterdayScore >= 14) return "LOCK";
+  if (yesterdayScore >= 9) return "PICK";
+  if (yesterdayScore >= 5) return "CONSIDER";
   return "SKIP";
 }
 
 function resolveConfidence(yesterdayScore: number, instantSkip: boolean): MatchAnalysis["confidence"] {
   if (instantSkip) return "LOW";
-  if (yesterdayScore >= 12) return "HIGH";
-  if (yesterdayScore >= 8) return "MEDIUM";
+  if (yesterdayScore >= 14) return "HIGH";
+  if (yesterdayScore >= 9) return "MEDIUM";
   return "LOW";
 }
 
