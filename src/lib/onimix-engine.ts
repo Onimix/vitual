@@ -189,6 +189,23 @@ function checkInstantSkips(
     return { skip: true, reason: `${awayTeam} scored 2+ at home, now away - home-to-away suppression` };
   }
 
+  const homeLowSamePosition = homePlayedHome && !homePlayedAway && (homeCard.lastHomeScore ?? 0) === 1;
+  if (homeLowSamePosition) {
+    return { skip: true, reason: `${homeTeam} scored 1 at home, same position - low energy` };
+  }
+
+  const awayTeamHomeToAway = awayPlayedHome && !awayPlayedAway && (awayCard.lastHomeScore ?? 0) >= 2;
+  if (awayTeamHomeToAway) {
+    return { skip: true, reason: `${awayTeam} scored 2+ at home, now away - home-to-away switch` };
+  }
+
+  const homePlayedAwayYesterday = homeCard.lastAwayDate !== null;
+  const awayPlayedHomeYesterday = awayCard.lastHomeDate !== null;
+  const bothSwitched = homePlayedAwayYesterday && awayPlayedHomeYesterday;
+  if (bothSwitched) {
+    return { skip: true, reason: "Both teams switched positions - double position switch" };
+  }
+
   if (homeScoredYesterday === 1 && awayScoredYesterday === 1) {
     return { skip: true, reason: "Both scored exactly 1 - combined low energy" };
   }
